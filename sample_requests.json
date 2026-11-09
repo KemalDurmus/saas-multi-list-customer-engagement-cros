@@ -1,0 +1,31 @@
+[
+  {
+    "method": "GET",
+    "path": "/",
+    "form_fields": []
+  },
+  {
+    "method": "POST",
+    "path": "/analyze",
+    "form_fields": [
+      {
+        "name": "demo",
+        "value": "1"
+      }
+    ]
+  },
+  {
+    "method": "POST",
+    "path": "/analyze",
+    "form_fields": [
+      {
+        "name": "master_text",
+        "value": "email,name\nAyse@Example.com,Ayşe\nmehmet@example.com,Mehmet\nveli@example.com,Veli"
+      },
+      {
+        "name": "activity_text",
+        "value": "email,event\n ayse+beta@example.com ,login\nAYSE@example.com,export\nmehmet@example.com,login"
+      }
+    ]
+  }
+]

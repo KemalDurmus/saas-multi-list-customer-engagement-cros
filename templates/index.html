@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ app_title }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="card">
+    <h2>Listelerinizi yükleyin</h2>
+    <p class="muted">Ana müşteri CSV'sini ve en fazla 20 etkinlik/anket CSV'sini e-posta sütunu üzerinden eşleştirir. E-postalar küçük harfe çevrilir, boşluklar ve <code>+alias</code> kısımları temizlenir. Verileriniz sunucuda saklanmaz; yalnızca bu yanıt için bellekte işlenir.</p>
+    <form method="post" action="{{ url_for('feature.analyze') }}" enctype="multipart/form-data" class="upload-form">
+      <label for="master_file"><strong>1. Ana müşteri listesi (CSV)</strong></label>
+      <input type="file" id="master_file" name="master_file" accept=".csv,.txt,text/csv,text/plain">
+      <label for="master_text" class="muted">veya metin olarak yapıştırın</label>
+      <textarea id="master_text" name="master_text" rows="4" placeholder="email,name&#10;ayse@example.com,Ayşe"></textarea>
+
+      <label for="activity_files"><strong>2. Etkinlik / anket / geri bildirim CSV'leri</strong></label>
+      <input type="file" id="activity_files" name="activity_files" accept=".csv,.txt,text/csv,text/plain" multiple>
+      <label for="activity_text" class="muted">veya tek bir listeyi yapıştırın</label>
+      <textarea id="activity_text" name="activity_text" rows="4" placeholder="email,event&#10;ayse@example.com,login"></textarea>
+
+      <div class="actions">
+        <button class="btn" type="submit">Eşleştir ve hesapla</button>
+        <button class="btn btn-secondary" type="submit" name="demo" value="1" formnovalidate>Örnek veriyle dene</button>
+      </div>
+    </form>
+  </div>
+
+  {% if result %}
+  {% set s = result.summary %}
+  <div class="card">
+    <h2>Özet</h2>
+    <div class="grid">
+      <div class="stat"><strong>{{ s.total }}</strong><span>müşteri</span></div>
+      <div class="stat"><strong>{{ s.files }}</strong><span>etkinlik dosyası</span></div>
+      <div class="stat"><strong>{{ s.active }}</strong><span>katılım gösteren</span></div>
+      <div class="stat"><strong>{{ s.passive }}</strong><span>pasif</span></div>
+      <div class="stat"><strong>{{ s.power }}</strong><span>power user</span></div>
+      <div class="stat"><strong>%{{ s.avg_score }}</strong><span>ortalama etkileşim skoru</span></div>
+    </div>
+    <p class="muted">Ana listede e-posta sütunu: <code>{{ s.master_column }}</code>.
+      {% if s.duplicates %}{{ s.duplicates }} yinelenen e-posta tekilleştirildi. {% endif %}
+      {% if s.master_invalid %}{{ s.master_invalid }} satırda geçerli e-posta bulunamadı ve atlandı. {% endif %}
+      {% if s.master_aliases %}{{ s.master_aliases }} adreste +alias temizlendi.{% endif %}</p>
+    <p class="muted"><strong>Nasıl hesaplanır?</strong> Etkileşim skoru = müşterinin göründüğü dosya sayısı ÷ toplam dosya sayısı. Pasif: hiçbir dosyada yok. Power user: toplam en az 3 kayıt ve dosyaların en az %75'inde yer alan müşteri. Diğerleri aktif.</p>
+    <a class="btn" download="musteri_etkilesim.csv" href="{{ result.csv_uri }}">Birleştirilmiş CSV'yi indir</a>
+  </div>
+
+  <div class="card">
+    <h2>Dosya bazlı eşleşme</h2>
+    <div class="table-wrap">
+    <table class="wrap-cells">
+      <thead><tr><th>Dosya</th><th>E-posta sütunu</th><th>Satır</th><th>Eşleşen müşteri</th><th>Eşleşen kayıt</th><th>Listede olmayan kayıt</th><th>Atlanan satır</th></tr></thead>
+      <tbody>
+      {% for f in result.file_stats %}
+        <tr><td>{{ f.label }}</td><td>{{ f.email_column }}</td><td>{{ f.rows }}</td><td>{{ f.matched_users }}</td><td>{{ f.matched_rows }}</td><td>{{ f.unmatched_rows }}</td><td>{{ f.invalid }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Müşteri etkileşim tablosu</h2>
+    <div class="filters" id="filters">
+      <button type="button" class="btn btn-secondary is-on" data-filter="all">Tümü ({{ s.total }})</button>
+      <button type="button" class="btn btn-secondary" data-filter="power">Power user ({{ s.power }})</button>
+      <button type="button" class="btn btn-secondary" data-filter="aktif">Aktif ({{ s.active - s.power }})</button>
+      <button type="button" class="btn btn-secondary" data-filter="pasif">Pasif ({{ s.passive }})</button>
+    </div>
+    <div class="table-wrap">
+    <table class="wrap-cells" id="users-table">
+      <thead><tr><th>E-posta</th>{% if s.has_names %}<th>Ad</th>{% endif %}<th>Dosya</th><th>Kayıt</th><th>Skor</th><th>Durum</th><th>Göründüğü dosyalar</th></tr></thead>
+      <tbody>
+      {% for u in result.shown %}
+        <tr data-status="{{ u.status }}">
+          <td>{{ u.email }}</td>
+          {% if s.has_names %}<td>{{ u.name if u.name else '—' }}</td>{% endif %}
+          <td>{{ u.files }}/{{ s.files }}</td>
+          <td>{{ u.events }}</td>
+          <td>%{{ u.score }}</td>
+          <td><span class="badge">{{ u.status_label }}</span></td>
+          <td class="muted">{{ u.file_names | join(', ') if u.file_names else '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% if result.hidden %}
+    <p class="muted">Tabloda ilk {{ result.shown|length }} müşteri gösteriliyor; kalan {{ result.hidden }} müşteri indirilen CSV'de yer alır.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='app.js') }}"></script>{% endblock %}

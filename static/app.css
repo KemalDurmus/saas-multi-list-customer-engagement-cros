@@ -1,0 +1,15 @@
+.upload-form{display:flex;flex-direction:column;gap:.6rem}
+.upload-form textarea,.upload-form input[type=file]{width:100%;max-width:100%;box-sizing:border-box}
+.actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.5rem}
+.filters{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.8rem}
+.filters .is-on{outline:2px solid currentColor}
+.table-wrap{width:100%;overflow-x:auto}
+.wrap-cells td,.wrap-cells th{overflow-wrap:anywhere;word-break:break-word}
+code{overflow-wrap:anywhere}
+.card{max-width:100%;box-sizing:border-box}
+@media (max-width:640px){
+  .wrap-cells thead{display:none}
+  .wrap-cells,.wrap-cells tbody,.wrap-cells tr,.wrap-cells td{display:block;width:100%;box-sizing:border-box}
+  .wrap-cells tr{border:1px solid rgba(128,128,128,.35);border-radius:8px;margin-bottom:.6rem;padding:.4rem .6rem}
+  .wrap-cells td{border:0;padding:.15rem 0}
+}
